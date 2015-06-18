@@ -9,10 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-volatile char inputArray[10];
+char inputArray[11];
 volatile int ptr;
 volatile int i = 0 ;
 volatile int input_enable=1;
+
+
+typedef struct _svm_node_
+{
+	int index;
+	double value;
+} svm_node;
 
 void initialize(){
 	 // P3.3,4 = USCI_A1 TXD/RXD (USB TX RX on PORT 3.3,3.4)
@@ -49,8 +56,19 @@ void sendACK(){
 	uart_newline();
 	ptr=0;
 	input_enable = 1;
-	inputArray[0] = '0';
+	inputArray[0] = ' ';
+	inputArray[1] = ' ';
+	inputArray[2] = ' ';
+	inputArray[3] = ' ';
+	inputArray[4] = ' ';
+	inputArray[5] = ' ';
+	inputArray[6] = ' ';
+	inputArray[7] = ' ';
+	inputArray[8] = ' ';
+	inputArray[9] = ' ';
+	inputArray[10] = ' ';
 	P1OUT = 0b00000000;
+	P4OUT = 0b00000000;
 }
 
 void println(char *input , int input_size){
@@ -87,7 +105,7 @@ void main(void){
 
 		int rhosize = nr_class*(nr_class-1)/2;
         double *rho = (double *)malloc((rhosize)*sizeof(double));
-		int it=0;
+		unsigned int it=0;
 		for(; it < rhosize ; it++){
 			while(input_enable == 1);
 				rho[it] = atof(inputArray);
@@ -111,9 +129,49 @@ void main(void){
 			sendACK();
 		}
 
+		//For Model
+		//double **sv_coef = (double**) malloc((total_sv)*sizeof(double*));
+		double sv_coef[2][9];
+		svm_node SV[9][3];
 
+		//For Classification
+		double *kvalue = (double *)malloc ((total_sv)*sizeof(double));
+		int *start = (int *)malloc ((nr_class)*sizeof(int));
+		int *vote = (int *)malloc ((nr_class)*sizeof(int));
+		int NUM_OF_SV_COEF_ELEMENT = nr_class -1 ;
+
+		it =0 ;
+//		for(; it< total_sv ; it++){
+//			sv_coef[it] = (double*)malloc(NUM_OF_SV_COEF_ELEMENT*sizeof(double));
+//		}
+
+		int it_i=0;
+		int it_j=0;
+		for(;it_i<total_sv ;it_i++){
+
+				//SV_REF
+				while(input_enable ==1);
+				int size_of_sv_i = atoi(inputArray);
+				sendACK();
+
+			//SV_COEF
+			for(it_j=0;it_j<NUM_OF_SV_COEF_ELEMENT;it_j++){
+				while(input_enable ==1);
+				sv_coef[it_j][it_i] = atof(inputArray);
+				sendACK();
+			}
+			int lastValue;
+			for(it = 0;it<size_of_sv_i-1;it++){
+				while(input_enable ==1);
+				SV[it_i][it].index = (int)atoi(inputArray);
+				sendACK();
+
+				while(input_enable ==1);
+				SV[it_i][it].value = (double)atof(inputArray);
+				sendACK();
+			}
+		}
 		P4OUT = 0b10000000;
-
 
 }
 
