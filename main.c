@@ -12,10 +12,13 @@
 char inputArray[11];
 double sum_temp = 0;
 volatile int ptr;
-volatile int i = 0 ;
+volatile int i = 0 ,result = 9;
 volatile int input_enable=1;
+volatile double multiply_temp = 0;
 
+unsigned int selector = 0;
 
+//data structure for model
 typedef struct _svm_node_
 {
 	int index;
@@ -35,7 +38,6 @@ void initialize(){
 	 UCA1CTL1 &= ~UCSWRST; // Initialize the state machine
 	 // Enable USCI_A1 RX interrupt
 	 UCA1IE |= UCRXIE;
-
 	 //LED Initialization
 	 P1DIR |= 0x01;
 	 P4DIR |= 0x80;
@@ -44,8 +46,8 @@ void initialize(){
 }
 
 void uart_putchar(char input){
-		while (!(UCA1IFG&UCTXIFG));
-		UCA1TXBUF = input;
+	while (!(UCA1IFG&UCTXIFG));
+	UCA1TXBUF = input;
 }
 void uart_newline(){
 	uart_putchar('\n');
@@ -74,26 +76,26 @@ void sendACK(){
 
 void println(char *input , int input_size){
 	int i = input_size;
-	for(; i>0 ; i--){
-		uart_putchar(input[input_size-i]);
-	}
+	for(; i>0 ; i--)uart_putchar(input[input_size-i]);
 	uart_putchar('\n');
 	uart_putchar('\r');
 }
 
+double multiply(double *left , double *right){
+	multiply_temp =0;
+	multiply_temp = (float)(*left) * (float)(*right);
+	return multiply_temp;
+}
+
 double dot(const svm_node *px, const svm_node *py){
 		sum_temp = 0;
-
-		while(px->index != -1 && py->index != -1)
-		{
-			if(px->index == py->index)
-			{
+		while(px->index != -1 && py->index != -1){
+			if(px->index == py->index){
 				sum_temp += px->value * py->value;
 				++px;
 				++py;
 			}
-			else
-			{
+			else{
 				if(px->index > py->index)
 					++py;
 				else
@@ -118,61 +120,88 @@ void main(void){
 
 		//RECEIVE PARAMETERS
 
-		while(input_enable == 1);
-			int nr_class = atoi(inputArray);
-		sendACK(); //Send @ as ACK signal to get the next Value
-
-		while(input_enable == 1);
-			int total_sv = atoi(inputArray);
-		sendACK();
-
-		int rhosize = nr_class*(nr_class-1)/2;
-        double *rho = (double *)malloc((rhosize)*sizeof(double));
-		unsigned int it=0;
-		for(; it < rhosize ; it++){
+		//NUMBER OF DIMENSION
 			while(input_enable == 1);
-				rho[it] = atof(inputArray);
-			sendACK();
-		}
+				int dimension = atoi(inputArray);
+			sendACK(); //Send @ as ACK signal to get the next Value
 
+		//NUMBER OF CLASSES
+			while(input_enable == 1);
+				int nr_class = atoi(inputArray);
+			sendACK(); //Send @ as ACK signal to get the next Value
+
+		//NUMBER OF TOTAL SUPPORT VECTORS
+			while(input_enable == 1);
+				int total_sv = atoi(inputArray);
+			sendACK();
+
+		//RHO Array
+			int rhosize = nr_class*(nr_class-1)/2;
+			double *rho = (double *)malloc((rhosize)*sizeof(double));
+			unsigned int it=0;
+				for(; it < rhosize ; it++){
+					while(input_enable == 1);
+						rho[it] = atof(inputArray);
+					sendACK();
+				}
+
+		//CLASS LABEL TAG
 		it=0;
-		int *label = (int *)malloc((nr_class)*sizeof(int));
-		for(; it < nr_class ; it++){
-			while(input_enable == 1);
-				label[it] = atoi(inputArray);
-			sendACK();
-		}
+			int *label = (int *)malloc((nr_class)*sizeof(int));
+			for(; it < nr_class ; it++){
+				while(input_enable == 1);
+					label[it] = atoi(inputArray);
+				sendACK();
+			}
 
+		//NR_SV
 		it=0;
 		//model->nSV = Malloc(int,nr_class);
-		int *nr_sv = (int*)malloc((nr_class)*sizeof(int));
-		for(; it < nr_class ; it++){
-			while(input_enable == 1);
-			nr_sv[it] = atoi(inputArray);
-			sendACK();
-		}
-
-		//For Model
-		//double **sv_coef = (double**) malloc((total_sv)*sizeof(double*));
-
-		double sv_coef[2][9];
-		svm_node SV[9][4];
+			int *nr_sv = (int*)malloc((nr_class)*sizeof(int));
+			for(; it < nr_class ; it++){
+				while(input_enable == 1);
+				nr_sv[it] = atoi(inputArray);
+				sendACK();
+			}
 
 		int NUM_OF_SV_COEF_ELEMENT = nr_class -1 ;
 
-		it =0 ;
-//		for(; it< total_sv ; it++){
-//			sv_coef[it] = (double*)malloc(NUM_OF_SV_COEF_ELEMENT*sizeof(double));
-//		}
+		//Support Vector and its Coefficient
 
+		//double sv_coef[2][9];
+		//svm_node SV[9][4];
+
+		svm_node **SV = (svm_node **) malloc ((total_sv)*sizeof(svm_node*));
+		int z = 0;
+		for(it=0 ; it < total_sv ; it++){
+			SV[it] = (svm_node*) malloc ((dimension+1)*sizeof(svm_node));
+			//SV[it] = (svm_node*) malloc ((4)*sizeof(svm_node));
+			for(z=0;z < dimension+1 ; z++){
+				//for(z=0;z < 4; z++){
+				SV[it][z].index = 0;
+				SV[it][z].value = 0.0;
+			}
+		}
+
+		z=0;
+		it=0;
+		double **sv_coef = (double**) malloc((nr_class-1)*sizeof(double*)); //double **sv_coef = (double**) malloc((2)*sizeof(double*));
+		for(it=0; it < (nr_class-1);it++){
+			sv_coef[it] = (double*) malloc (total_sv * sizeof(double));
+			for(z =0; z<total_sv ; z++){
+				sv_coef[it][z] = 0.00;
+			}
+		}
+
+		it =0 ;
 		int it_i=0;
 		int it_j=0;
-		for(;it_i<total_sv ;it_i++){
+		for(it_i=0;it_i<total_sv ;it_i++){
 
-				//SV_REF
-				while(input_enable ==1);
-				int size_of_sv_i = atoi(inputArray);
-				sendACK();
+			//LOOP REFERENCE
+			while(input_enable ==1);
+			int size_of_sv_i = atoi(inputArray);
+			sendACK();
 
 			//SV_COEF
 			for(it_j=0;it_j<NUM_OF_SV_COEF_ELEMENT;it_j++){
@@ -180,75 +209,92 @@ void main(void){
 				sv_coef[it_j][it_i] = atof(inputArray);
 				sendACK();
 			}
-			int lastValue;
+
+			//SV
 			for(it = 0;it<size_of_sv_i;it++){
+				//index
 				while(input_enable ==1);
 				SV[it_i][it].index = (int)atoi(inputArray);
 				sendACK();
-
+				//value
 				while(input_enable ==1);
 				SV[it_i][it].value = (double)atof(inputArray);
 				sendACK();
 			}
 		}
+		//GREEN LED SHOW THE INPUT PROCESS HAS BEEN ENDED.
 		P4OUT = 0b10000000;
 
-
-
-		//For Classification
-
+		//LINEAR Classification Process
 		double *dec_values = (double *) malloc((rhosize)*sizeof(double));
+
+
+		P1OUT = 0b00000000;
+
+		//TEST VALUE INPUT
 		svm_node x[3];
 		//RESULT==2 1:0.680000 2:0.884000 3:0.000800
+		if(selector == 2){
 		x[0].index = 1;
 		x[0].value = 0.680000;
 		x[1].index = 2;
 		x[1].value = 0.884000;
 		x[2].index = 3;
 		x[2].value = 0.000800;
+		}
+//		//RESULT == 1 1:0.768000 2:0.690000 3:0.034800
+		if(selector == 1){
+		x[0].index = 1;
+		x[0].value = 0.768000;
+		x[1].index = 2;
+		x[1].value = 0.694000;
+		x[2].index = 3;
+		x[2].value = 0.000800;
+		}
+		//0 1:0.528000 2:0.668000 3:0.834800
+		if(selector == 0){
+		x[0].index = 1;
+		x[0].value = 0.528000;
+		x[1].index = 2;
+		x[1].value = 0.668000;
+		x[2].index = 3;
+		x[2].value = 0.834800;
+		}
 
 
-		//RESULT == 1 1:0.768000 2:0.690000 3:0.034800
-//		x[0].index = 1;
-//		x[0].value = 0.768000;
-//		x[1].index = 2;
-//		x[1].value = 0.694000;
-//		x[2].index = 3;
-//		x[2].value = 0.000800;
-
-		sum_temp = 0;
-		//double *kvalue = Malloc(double,l);
 		double *kvalue = (double *)malloc ((total_sv)*sizeof(double));
 		for(it=0;it<total_sv;it++)
-			kvalue[it] = dot(x,SV[it]); //Kernel::k_function(x,model->SV[i],model->param);
-		sum_temp = 0;
-		//int *start = Malloc(int,nr_class);
+			kvalue[it] = dot(x,SV[it]);
+
+
 		int *start = (int *)malloc ((nr_class)*sizeof(int));
 		start[0] = 0;
 		for(it=1;it<nr_class;it++)
 			start[it] = start[it-1]+nr_sv[it-1];
 
-		//int *vote = Malloc(int,nr_class);
+		//VOTING ARRAY (decided which class that the 'X' data should be)
 		int *vote = (int *)malloc ((nr_class)*sizeof(int));
 		for(it=0;it<nr_class;it++)
 			vote[it] = 0;
 
+		//VOTING PROCESS
 		int p=0;
-		double *coef1,*coef2;
-		for(it=0;it<nr_class;it++)
-			for(it_j = it+1;it_j<nr_class;it_j++)
-			{
-				double sum = 0;
-				int si = start[it];
-				int sj = start[it_j];
-				int ci = nr_sv[it];
-				int cj = nr_sv[it_j];
+		double *coef1,*coef2,sum;
+		int si,sj,ci,cj,k,vote_max_idx;
 
-				int k;
-				coef1 = &sv_coef[it_j-1];
-				coef2 = &sv_coef[it];
+		for(it=0;it<nr_class;it++){
+			for(it_j = it+1;it_j<nr_class;it_j++){
+				sum = 0;
+				si = start[it];
+				sj = start[it_j];
+				ci = nr_sv[it];
+				cj = nr_sv[it_j];
+
+				coef1 = sv_coef[it_j-1]; //coef1 = &sv_coef[it_j-1]; //ARRAY IMPLEMENTATION
+				coef2 = sv_coef[it]; //coef2 = &sv_coef[it];    //ARRAY IMPLEMENTATION
+
 				for(k=0;k<ci;k++)
-					sum += coef1[si+k] * kvalue[si+k];
+					sum+= multiply(&coef1[si+k],&kvalue[si+k]); //	sum += coef1[si+k] * kvalue[si+k];
 				for(k=0;k<cj;k++)
 					sum += coef2[sj+k] * kvalue[sj+k];
 				sum -= rho[p];
@@ -260,19 +306,26 @@ void main(void){
 					++vote[it_j];
 				p++;
 			}
-
-		int vote_max_idx = 0;
+		}
+		//Find Max Voting Value
+		vote_max_idx = 0;
 		for(i=1;i<nr_class;i++)
-			if(vote[i] > vote[vote_max_idx])
-				vote_max_idx = i;
+			if(vote[i] > vote[vote_max_idx])vote_max_idx = i;
 
-		//free(kvalue);
-		//free(start);
-		//free(vote);
-		int result = label[vote_max_idx];
+		free(kvalue);
+		free(start);
+		free(vote);
 		free(dec_values);
-		if(result ==99)P1OUT = 0b00000001;
 
+		result = label[vote_max_idx];
+
+		//TEST EXPECTING RESULT
+		if(result ==selector /*&& SV[0][0].index ==1*/)P1OUT = 0b00000001; //SHOW RED LED when result is correct :D
+		else P1OUT = 0b00000000;
+
+		P2REN = 0x02;         // Turn on pull up resistor to push button
+		P2IE |= BIT1;         // P1.3 interrupt enabled
+		while(1);
 
 }
 
@@ -293,4 +346,10 @@ __interrupt void USCI_A1_ISR(void){
 	}
 }
 
+#pragma vector=PORT2_VECTOR
+__interrupt void PORT2_ISR(void){
+	sleep(50);
+	selector++;
+	P2IFG &= ~BIT1; // P1.3 IFG cleared
+}
 
