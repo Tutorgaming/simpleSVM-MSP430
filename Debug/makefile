@@ -115,32 +115,32 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-SimpleSOM-MSP430.out \
+myTest3_Storage.out \
 
 EXE_OUTPUTS__QUOTED += \
-"SimpleSOM-MSP430.out" \
+"myTest3_Storage.out" \
 
 BIN_OUTPUTS += \
-SimpleSOM-MSP430.hex \
+myTest3_Storage.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"SimpleSOM-MSP430.hex" \
+"myTest3_Storage.hex" \
 
 
 # All Target
-all: SimpleSOM-MSP430.out
+all: myTest3_Storage.out
 
 # Tool invocations
-SimpleSOM-MSP430.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+myTest3_Storage.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: MSP430 Linker'
-	"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/bin/cl430" -vmspx --abi=eabi --data_model=restricted --use_hw_mpy=F5 --advice:power=all -g --define=__MSP430F5529__ --diag_warning=225 --display_error_number --diag_wrap=off --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU23 --silicon_errata=CPU40 --printf_support=minimal -z -m"SimpleSOM-MSP430.map" --heap_size=7168 --stack_size=1024 --cinit_hold_wdt=on -i"C:/ti/ccsv6/ccs_base/msp430/include" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/include" -i"C:/ti/ccsv6/ccs_base/msp430/lib/5xx_6xx_FRxx" --reread_libs --warn_sections --display_error_number --diag_wrap=off --xml_link_info="SimpleSOM-MSP430_linkInfo.xml" --use_hw_mpy=F5 --rom_model -o "SimpleSOM-MSP430.out" $(ORDERED_OBJS)
+	"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/bin/cl430" -vmspx --abi=eabi --data_model=restricted --use_hw_mpy=F5 --advice:power=all -g --define=__MSP430F5529__ --diag_warning=225 --display_error_number --diag_wrap=off --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU23 --silicon_errata=CPU40 --printf_support=minimal -z -m"myTest3_Storage.map" --heap_size=4096 --stack_size=1024 --cinit_hold_wdt=on -i"C:/ti/ccsv6/ccs_base/msp430/include" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/include" -i"C:/ti/ccsv6/ccs_base/msp430/lib/5xx_6xx_FRxx" --reread_libs --warn_sections --display_error_number --diag_wrap=off --xml_link_info="myTest3_Storage_linkInfo.xml" --use_hw_mpy=F5 --rom_model -o "myTest3_Storage.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-SimpleSOM-MSP430.hex: $(EXE_OUTPUTS)
+myTest3_Storage.hex: $(EXE_OUTPUTS)
 	@echo 'Invoking: MSP430 Hex Utility'
-	"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/bin/hex430" --memwidth=8 --romwidth=8 -o "SimpleSOM-MSP430.hex" $(EXE_OUTPUTS__QUOTED)
+	"C:/ti/ccsv6/tools/compiler/ti-cgt-msp430_4.4.3/bin/hex430" --memwidth=8 --romwidth=8 -o "myTest3_Storage.hex" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building: $@'
 	@echo ' '
 
