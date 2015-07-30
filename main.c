@@ -34,6 +34,8 @@ typedef struct _svm_node_
 } svm_node;
 
 
+
+
 void initialize(){
 	 // P3.3,4 = USCI_A1 TXD/RXD (USB TX RX on PORT 3.3,3.4)
 	 P4SEL |= BIT5+BIT4;
@@ -69,6 +71,19 @@ void println(char *input , int input_size){
 	uart_putchar('\n');
 	uart_putchar('\r');
 }
+
+char * itoa(int input,char str[11]){
+	sprintf(str,"%d",input);
+	return str;
+}
+
+void printstring(char *input){
+	int i;
+	for(i = 0 ; i < strlen(input); i++){
+		uart_putchar(input[i]);
+	}
+}
+
 /////////////////////////////////////////////
 
 void sendACK(){
@@ -322,6 +337,16 @@ void main(void){
 		free(dec_values);
 
 		result = label[vote_max_idx];
+		//Blink the LED according to the class number
+
+			uart_newline();
+			char *string = "Return = ";
+			char buf_int[11];
+			printstring(string);
+			printstring(itoa(result,buf_int));
+			uart_putchar('+'); //End Seperator
+			uart_newline();
+
 		//Blinking the result according to CLASS TAG ( 0 means no blink )
 		blinking(result);
 	}
